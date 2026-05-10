@@ -1,29 +1,41 @@
-function Sidebar() {
+import { Link } from "react-router-dom"
+
+export default function Sidebar() {
   return (
-    <div className="w-64 h-screen bg-zinc-900 border-r border-zinc-800 p-6">
-      <h1 className="text-2xl font-bold text-white">
+    <div className="w-64 min-h-screen bg-zinc-900 text-white p-6">
+      <h1 className="text-3xl font-bold">
         TrackFinance
       </h1>
 
-      <div className="mt-10 space-y-4">
-        <button className="text-zinc-300 hover:text-white block">
-          Dashboard
-        </button>
+      <div className="flex flex-col gap-10 mt-16 text-2xl">
+        <Link
+          to="/"
+          className="hover:text-green-400 transition"
+        >
+          Painel
+        </Link>
 
-        <button className="text-zinc-300 hover:text-white block">
-          Transactions
-        </button>
+        <Link
+          to="/transactions"
+          className="hover:text-green-400 transition"
+        >
+          Transações
+        </Link>
 
-        <button className="text-zinc-300 hover:text-white block">
-          Goals
-        </button>
+        <Link
+          to="/goals"
+          className="hover:text-green-400 transition"
+        >
+          Metas
+        </Link>
 
-        <button className="text-zinc-300 hover:text-white block">
-          Settings
-        </button>
+        <Link
+          to="/settings"
+          className="hover:text-green-400 transition"
+        >
+          Configurações
+        </Link>
       </div>
     </div>
   )
 }
-
-export default Sidebar
