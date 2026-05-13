@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react"
-import { Plus, Trash2, TrendingUp, TrendingDown, LogIn } from "lucide-react"
+import { TrendingUp, TrendingDown, LogIn } from "lucide-react"
 import Card from "../components/Card"
 import ExpenseChart from "../components/ExpenseChart"
 import { supabase } from "../supabase"
 
 export default function Dashboard({ user }) {
   const [transactions, setTransactions] = useState([])
-  const [title, setTitle] = useState("")
-  const [amount, setAmount] = useState("")
-  const [category, setCategory] = useState("")
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (user) fetchTransactions()
@@ -25,28 +21,16 @@ export default function Dashboard({ user }) {
     if (error) console.log(error)
   }
 
-  async function addTransaction() {
-    if (!title || !amount) return
-    setLoading(true)
-    const { error } = await supabase.from("transactions").insert([
-      { title, amount: Number(amount), category, user_id: user.id },
-    ])
-    if (!error) {
-      fetchTransactions()
-      setTitle("")
-      setAmount("")
-      setCategory("")
-    }
-    setLoading(false)
-  }
-
   async function removeTransaction(id) {
     const { error } = await supabase.from("transactions").delete().eq("id", id)
     if (!error) fetchTransactions()
   }
 
-  async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({ provider: "google" })
+  function formatBRL(value) {
+    return Number(value).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    })
   }
 
   const income = transactions
@@ -59,11 +43,8 @@ export default function Dashboard({ user }) {
 
   const balance = income + expenses
 
-  function formatBRL(value) {
-    return Number(value).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })
+  async function signInWithGoogle() {
+    await supabase.auth.signInWithOAuth({ provider: "google" })
   }
 
   if (!user) {
@@ -105,58 +86,21 @@ export default function Dashboard({ user }) {
       {/* Gráfico */}
       <ExpenseChart transactions={transactions} />
 
-      {/* Formulário */}
-      <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mt-6">
-        <h2 className="text-base font-semibold text-white mb-4">Nova Transação</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input
-            type="text"
-            placeholder="Descrição"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-600 transition"
-          />
-          <input
-            type="number"
-            placeholder="Valor (negativo = despesa)"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-600 transition"
-          />
-          <input
-            type="text"
-            placeholder="Categoria"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-600 transition"
-          />
-        </div>
-        <button
-          onClick={addTransaction}
-          disabled={loading || !title || !amount}
-          className="mt-3 flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
-        >
-          <Plus size={16} />
-          {loading ? "Adicionando..." : "Adicionar"}
-        </button>
-      </div>
-
-      {/* Lista de transações */}
+      {/* Últimas transações */}
       <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mt-6">
         <h2 className="text-base font-semibold text-white mb-4">
-          Transações Recentes
+          Últimas Transações
           <span className="ml-2 text-xs font-normal text-zinc-500">
             ({transactions.length})
           </span>
         </h2>
-
         {transactions.length === 0 ? (
           <p className="text-zinc-500 text-sm text-center py-8">
-            Nenhuma transação ainda. Adicione a primeira acima!
+            Nenhuma transação ainda. Vá em Transações para adicionar!
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {transactions.map((transaction) => (
+            {transactions.slice(0, 5).map((transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between bg-zinc-800/60 hover:bg-zinc-800 px-4 py-3 rounded-xl transition group"
@@ -175,22 +119,10 @@ export default function Dashboard({ user }) {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p
-                    className={`text-sm font-semibold ${
-                      transaction.amount > 0 ? "text-green-400" : "text-red-400"
-                    }`}
-                  >
-                    {transaction.amount > 0 ? "+" : ""}
-                    {formatBRL(transaction.amount)}
-                  </p>
-                  <button
-                    onClick={() => removeTransaction(transaction.id)}
-                    className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-950/60 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                <p className={`text-sm font-semibold ${transaction.amount > 0 ? "text-green-400" : "text-red-400"}`}>
+                  {transaction.amount > 0 ? "+" : ""}
+                  {formatBRL(transaction.amount)}
+                </p>
               </div>
             ))}
           </div>
