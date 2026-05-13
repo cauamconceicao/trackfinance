@@ -152,7 +152,7 @@ function App() {
 
       <Route
         path="/transactions"
-        element={<Transactions />}
+        element={<Transactions user={user} />}
       />
 
       <Route
