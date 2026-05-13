@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Plus, Trash2, TrendingUp, TrendingDown, Search } from "lucide-react"
+import { Plus, Trash2, TrendingUp, TrendingDown, Search, Pencil, Check, X } from "lucide-react"
 import { supabase } from "../supabase"
 
 const CATEGORIES = [
@@ -24,6 +24,10 @@ export default function Transactions({ user }) {
   const [amount, setAmount] = useState("")
   const [category, setCategory] = useState(CATEGORIES[0])
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editAmount, setEditAmount] = useState("")
+  const [editCategory, setEditCategory] = useState(CATEGORIES[0])
 
   useEffect(() => {
     if (user) fetchTransactions()
@@ -58,6 +62,32 @@ export default function Transactions({ user }) {
   async function removeTransaction(id) {
     const { error } = await supabase.from("transactions").delete().eq("id", id)
     if (!error) fetchTransactions()
+  }
+
+  async function saveEdit(id) {
+    const { error } = await supabase
+      .from("transactions")
+      .update({
+        title: editTitle,
+        amount: Number(editAmount),
+        category: editCategory,
+      })
+      .eq("id", id)
+    if (!error) {
+      fetchTransactions()
+      setEditingId(null)
+    }
+  }
+
+  function startEditing(t) {
+    setEditingId(t.id)
+    setEditTitle(t.title)
+    setEditAmount(String(t.amount))
+    setEditCategory(t.category ?? CATEGORIES[0])
+  }
+
+  function cancelEditing() {
+    setEditingId(null)
   }
 
   function formatBRL(value) {
@@ -194,36 +224,91 @@ export default function Transactions({ user }) {
           {filtered.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between bg-zinc-900 border border-zinc-800 hover:border-zinc-700 px-4 py-3.5 rounded-2xl transition group"
+              className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 px-4 py-3.5 rounded-2xl transition group"
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
-                    ${transaction.amount > 0 ? "bg-green-950 text-green-400" : "bg-red-950 text-red-400"}`}
-                >
-                  {transaction.amount > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+              {editingId === transaction.id ? (
+                /* Modo edição */
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      autoFocus
+                      className="bg-zinc-800 border border-zinc-700 text-white text-sm px-3 py-2 rounded-xl focus:outline-none focus:border-green-600 transition"
+                    />
+                    <input
+                      type="number"
+                      value={editAmount}
+                      onChange={(e) => setEditAmount(e.target.value)}
+                      className="bg-zinc-800 border border-zinc-700 text-white text-sm px-3 py-2 rounded-xl focus:outline-none focus:border-green-600 transition"
+                    />
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="bg-zinc-800 border border-zinc-700 text-white text-sm px-3 py-2 rounded-xl focus:outline-none focus:border-green-600 transition"
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveEdit(transaction.id)}
+                      className="flex items-center gap-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium px-4 py-1.5 rounded-lg transition"
+                    >
+                      <Check size={13} />
+                      Salvar
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs px-4 py-1.5 rounded-lg hover:bg-zinc-800 transition"
+                    >
+                      <X size={13} />
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{transaction.title}</p>
-                  {transaction.category && (
-                    <span className="text-[11px] text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
-                      {transaction.category}
-                    </span>
-                  )}
+              ) : (
+                /* Modo visualização */
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0
+                        ${transaction.amount > 0 ? "bg-green-950 text-green-400" : "bg-red-950 text-red-400"}`}
+                    >
+                      {transaction.amount > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{transaction.title}</p>
+                      {transaction.category && (
+                        <span className="text-[11px] text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+                          {transaction.category}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm font-bold ${transaction.amount > 0 ? "text-green-400" : "text-red-400"}`}>
+                      {transaction.amount > 0 ? "+" : ""}
+                      {formatBRL(transaction.amount)}
+                    </p>
+                    <button
+                      onClick={() => startEditing(transaction)}
+                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-green-400 hover:bg-green-950/60 transition-all"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      onClick={() => removeTransaction(transaction.id)}
+                      className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-950/60 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <p className={`text-sm font-bold ${transaction.amount > 0 ? "text-green-400" : "text-red-400"}`}>
-                  {transaction.amount > 0 ? "+" : ""}
-                  {formatBRL(transaction.amount)}
-                </p>
-                <button
-                  onClick={() => removeTransaction(transaction.id)}
-                  className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-950/60 transition-all"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+              )}
             </div>
           ))}
         </div>
