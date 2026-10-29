@@ -8,7 +8,7 @@ Aplicação de controle financeiro pessoal com autenticação, dashboard interat
 
 ## ✨ Funcionalidades
 
-- **Autenticação** com Google via Supabase Auth
+- **Autenticação** com Google via Firebase Auth
 - **Dashboard** com saldo, receitas, despesas e gráficos
 - **Transações** — adicionar, editar, excluir e filtrar por categoria ou tipo
 - **Metas financeiras** — valor alvo, barra de progresso e atualização do valor guardado
@@ -24,7 +24,7 @@ Aplicação de controle financeiro pessoal com autenticação, dashboard interat
 | [React](https://react.dev/) | Interface |
 | [Vite](https://vitejs.dev/) | Bundler |
 | [Tailwind CSS](https://tailwindcss.com/) | Estilização |
-| [Supabase](https://supabase.com/) | Banco de dados e autenticação |
+| [Firebase](https://firebase.google.com/) | Banco de dados (Firestore) e autenticação |
 | [Recharts](https://recharts.org/) | Gráficos |
 | [Lucide React](https://lucide.dev/) | Ícones |
 | [React Router](https://reactrouter.com/) | Navegação |
@@ -37,7 +37,7 @@ Aplicação de controle financeiro pessoal com autenticação, dashboard interat
 ### Pré-requisitos
 
 - Node.js 18+
-- Conta no [Supabase](https://supabase.com/)
+- Conta no [Firebase](https://firebase.google.com/)
 
 ### Instalação
 
@@ -50,56 +50,50 @@ cd trackfinance
 npm install
 ```
 
-### Configuração do Supabase
+### Configuração do Firebase
 
-1. Crie um projeto no [Supabase](https://supabase.com/)
-2. Crie as tabelas abaixo no **Table Editor**
-3. Crie um arquivo `.env` na raiz do projeto:
+1. Crie um projeto no [console do Firebase](https://console.firebase.google.com/)
+2. Em **Authentication → Sign-in method**, ative o provedor **Google**
+3. Em **Firestore Database**, crie o banco (modo produção)
+4. Em **Configurações do projeto → Seus apps**, crie um app Web e copie as credenciais
+5. Crie um arquivo `.env` na raiz do projeto:
 
 ```env
-VITE_SUPABASE_URL=sua_url_aqui
-VITE_SUPABASE_ANON_KEY=sua_chave_aqui
+VITE_FIREBASE_API_KEY=sua_api_key_aqui
+VITE_FIREBASE_AUTH_DOMAIN=seu-projeto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=seu-projeto
+VITE_FIREBASE_STORAGE_BUCKET=seu-projeto.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=000000000000
+VITE_FIREBASE_APP_ID=1:000000000000:web:xxxxxxxxxxxxxxxx
 ```
 
-### Tabelas necessárias
+### Coleções necessárias (Firestore)
+
+As coleções `transactions` e `goals` são criadas automaticamente no primeiro documento salvo pelo app. Cada documento guarda:
 
 **transactions**
-| Coluna | Tipo |
+| Campo | Tipo |
 |---|---|
-| id | uuid (PK) |
-| user_id | uuid |
-| title | text |
-| amount | numeric |
-| category | text |
-| created_at | timestamptz |
+| userId | string |
+| title | string |
+| amount | number |
+| category | string |
+| createdAt | timestamp |
 
 **goals**
-| Coluna | Tipo |
+| Campo | Tipo |
 |---|---|
-| id | uuid (PK) |
-| user_id | uuid |
-| title | text |
-| target_amount | numeric |
-| current_amount | numeric |
-| created_at | timestamptz |
+| userId | string |
+| title | string |
+| targetAmount | number |
+| currentAmount | number |
+| createdAt | timestamp |
 
-### Políticas de segurança (RLS)
+> Na primeira consulta (`userId` + ordenação por `createdAt`), o Firestore pode pedir a criação de um índice composto — o próprio erro no console do navegador traz um link para criar automaticamente.
 
-Ative o RLS nas duas tabelas e crie as policies:
+### Regras de segurança (Firestore Rules)
 
-```sql
--- transactions
-create policy "Users can manage own transactions"
-on transactions for all
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
--- goals
-create policy "Users can manage own goals"
-on goals for all
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-```
+Em **Firestore Database → Regras**, cole o conteúdo de [firestore.rules](firestore.rules) — ele garante que cada usuário só acesse seus próprios documentos (`request.auth.uid == userId`).
 
 ### Rodando
 
@@ -126,7 +120,7 @@ src/
 │   ├── Goals.jsx         # Metas financeiras
 │   └── Settings.jsx      # Configurações da conta
 ├── App.jsx
-└── supabase.js
+└── firebase.js
 ```
 
 ---

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Receipt, Target, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Receipt, Target, Settings, LogOut, DollarSign } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 export default function Sidebar({ user, onLogout }) {
@@ -38,12 +38,12 @@ export default function Sidebar({ user, onLogout }) {
   return (
     <>
       {/* Sidebar desktop */}
-      <div className="hidden md:flex w-60 min-h-screen bg-zinc-950 border-r border-zinc-800/60 p-4 flex-col shrink-0">
+      <div className="hidden md:flex w-60 h-screen sticky top-0 bg-zinc-950 border-r border-zinc-800/60 p-4 flex-col shrink-0">
 
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-2 mb-8">
           <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shrink-0">
-            <LayoutDashboard size={15} className="text-white" />
+            <DollarSign size={16} className="text-white" strokeWidth={2.5} />
           </div>
           <span className="text-sm font-semibold tracking-tight text-zinc-100">
             TrackFinance

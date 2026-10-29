@@ -1,41 +1,48 @@
 import { useState, useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
+import { onAuthStateChanged, signOut } from "firebase/auth"
 
 import Sidebar from "./components/Sidebar"
 import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
 import Goals from "./pages/Goals"
 import Settings from "./pages/Settings"
+import Login from "./pages/Login"
 
-import { supabase } from "./supabase"
+import { auth } from "./firebase"
 
 function App() {
   const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   async function logout() {
-    await supabase.auth.signOut()
+    await signOut(auth)
   }
 
   useEffect(() => {
-    async function getCurrentUser() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-    }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(
+        firebaseUser
+          ? {
+              id: firebaseUser.uid,
+              email: firebaseUser.email,
+              user_metadata: { full_name: firebaseUser.displayName },
+            }
+          : null
+      )
+      setAuthChecked(true)
+    })
 
-    getCurrentUser()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null)
-      }
-    )
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
+    return unsubscribe
   }, [])
+
+  if (!authChecked) {
+    return <div className="min-h-screen bg-zinc-950" />
+  }
+
+  if (!user) {
+    return <Login />
+  }
 
   return (
     <div className="flex bg-zinc-950 min-h-screen">
