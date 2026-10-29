@@ -7,11 +7,13 @@ import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
 import Goals from "./pages/Goals"
 import Settings from "./pages/Settings"
+import Login from "./pages/Login"
 
 import { auth } from "./firebase"
 
 function App() {
   const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   async function logout() {
     await signOut(auth)
@@ -28,10 +30,19 @@ function App() {
             }
           : null
       )
+      setAuthChecked(true)
     })
 
     return unsubscribe
   }, [])
+
+  if (!authChecked) {
+    return <div className="min-h-screen bg-zinc-950" />
+  }
+
+  if (!user) {
+    return <Login />
+  }
 
   return (
     <div className="flex bg-zinc-950 min-h-screen">

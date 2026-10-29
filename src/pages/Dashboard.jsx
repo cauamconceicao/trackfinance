@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react"
-import { TrendingUp, TrendingDown, LogIn, ArrowRight } from "lucide-react"
+import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
-import { signInWithPopup } from "firebase/auth"
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
 import Card from "../components/Card"
 import ExpenseChart from "../components/ExpenseChart"
 import CategoryChart from "../components/CategoryChart"
-import { auth, db, googleProvider } from "../firebase"
+import { db } from "../firebase"
 
 export default function Dashboard({ user }) {
   const [transactions, setTransactions] = useState([])
@@ -58,32 +57,6 @@ export default function Dashboard({ user }) {
     const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1])
     return sorted[0] ?? null
   })()
-
-  async function signInWithGoogle() {
-    await signInWithPopup(auth, googleProvider)
-  }
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Bem-vindo ao TrackFinance
-          </h2>
-          <p className="text-zinc-400 mb-8">
-            Faça login para ver seu painel financeiro
-          </p>
-          <button
-            onClick={signInWithGoogle}
-            className="flex items-center gap-3 bg-white text-zinc-900 font-semibold px-6 py-3 rounded-xl hover:bg-zinc-100 transition mx-auto"
-          >
-            <LogIn size={18} />
-            Entrar com Google
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
