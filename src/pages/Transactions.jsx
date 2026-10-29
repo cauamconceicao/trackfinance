@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react"
 import { Plus, Trash2, TrendingUp, TrendingDown, Search, Pencil, Check, X } from "lucide-react"
-import { supabase } from "../supabase"
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore"
+import { db } from "../firebase"
 
 const CATEGORIES = [
   "Alimentação",
@@ -34,48 +46,61 @@ export default function Transactions({ user }) {
   }, [user])
 
   async function fetchTransactions() {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-    if (data) setTransactions(data)
-    if (error) console.log(error)
+    try {
+      const q = query(
+        collection(db, "transactions"),
+        where("userId", "==", user.id),
+        orderBy("createdAt", "desc")
+      )
+      const snapshot = await getDocs(q)
+      setTransactions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async function addTransaction() {
     if (!title || !amount) return
     setLoading(true)
-    const { error } = await supabase.from("transactions").insert([
-      { title, amount: Number(amount), category, user_id: user.id },
-    ])
-    if (!error) {
-      fetchTransactions()
+    try {
+      await addDoc(collection(db, "transactions"), {
+        title,
+        amount: Number(amount),
+        category,
+        userId: user.id,
+        createdAt: serverTimestamp(),
+      })
+      await fetchTransactions()
       setTitle("")
       setAmount("")
       setCategory(CATEGORIES[0])
       setShowForm(false)
+    } catch (error) {
+      console.log(error)
     }
     setLoading(false)
   }
 
   async function removeTransaction(id) {
-    const { error } = await supabase.from("transactions").delete().eq("id", id)
-    if (!error) fetchTransactions()
+    try {
+      await deleteDoc(doc(db, "transactions", id))
+      fetchTransactions()
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async function saveEdit(id) {
-    const { error } = await supabase
-      .from("transactions")
-      .update({
+    try {
+      await updateDoc(doc(db, "transactions", id), {
         title: editTitle,
         amount: Number(editAmount),
         category: editCategory,
       })
-      .eq("id", id)
-    if (!error) {
       fetchTransactions()
       setEditingId(null)
+    } catch (error) {
+      console.log(error)
     }
   }
 

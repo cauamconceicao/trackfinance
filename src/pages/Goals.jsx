@@ -1,6 +1,18 @@
 import { useState, useEffect } from "react"
 import { Plus, Trash2, Target, Pencil, Check, X } from "lucide-react"
-import { supabase } from "../supabase"
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  updateDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore"
+import { db } from "../firebase"
 
 export default function Goals({ user }) {
   const [goals, setGoals] = useState([])
@@ -15,54 +27,64 @@ export default function Goals({ user }) {
   }, [user])
 
   async function fetchGoals() {
-    const { data, error } = await supabase
-      .from("goals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-    if (data) setGoals(data)
-    if (error) console.log(error)
+    try {
+      const q = query(
+        collection(db, "goals"),
+        where("userId", "==", user.id),
+        orderBy("createdAt", "desc")
+      )
+      const snapshot = await getDocs(q)
+      setGoals(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async function addGoal() {
     if (!title.trim()) return
     setLoading(true)
-    const { error } = await supabase.from("goals").insert([
-      {
+    try {
+      await addDoc(collection(db, "goals"), {
         title,
-        target_amount: Number(targetAmount) || 0,
-        current_amount: 0,
-        user_id: user.id,
-      },
-    ])
-    if (!error) {
-      fetchGoals()
+        targetAmount: Number(targetAmount) || 0,
+        currentAmount: 0,
+        userId: user.id,
+        createdAt: serverTimestamp(),
+      })
+      await fetchGoals()
       setTitle("")
       setTargetAmount("")
+    } catch (error) {
+      console.log(error)
     }
     setLoading(false)
   }
 
   async function removeGoal(id) {
-    const { error } = await supabase.from("goals").delete().eq("id", id)
-    if (!error) fetchGoals()
+    try {
+      await deleteDoc(doc(db, "goals", id))
+      fetchGoals()
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async function saveCurrentAmount(id) {
-    const { error } = await supabase
-      .from("goals")
-      .update({ current_amount: Number(editingValue) })
-      .eq("id", id)
-    if (!error) {
+    try {
+      await updateDoc(doc(db, "goals", id), {
+        currentAmount: Number(editingValue),
+      })
       fetchGoals()
       setEditingId(null)
       setEditingValue("")
+    } catch (error) {
+      console.log(error)
     }
   }
 
   function startEditing(goal) {
     setEditingId(goal.id)
-    setEditingValue(String(goal.current_amount ?? 0))
+    setEditingValue(String(goal.currentAmount ?? 0))
   }
 
   function cancelEditing() {
@@ -141,7 +163,7 @@ export default function Goals({ user }) {
       ) : (
         <div className="flex flex-col gap-3">
           {goals.map((g) => {
-            const progress = getProgress(g.current_amount, g.target_amount)
+            const progress = getProgress(g.currentAmount, g.targetAmount)
             const isComplete = progress >= 100
             const isEditing = editingId === g.id
 
@@ -160,9 +182,9 @@ export default function Goals({ user }) {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{g.title}</p>
-                      {g.target_amount > 0 && (
+                      {g.targetAmount > 0 && (
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          Meta: {formatBRL(g.target_amount)}
+                          Meta: {formatBRL(g.targetAmount)}
                         </p>
                       )}
                     </div>
@@ -177,7 +199,7 @@ export default function Goals({ user }) {
                 </div>
 
                 {/* Barra de progresso */}
-                {g.target_amount > 0 && (
+                {g.targetAmount > 0 && (
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-xs text-zinc-500">Progresso</span>
@@ -225,7 +247,7 @@ export default function Goals({ user }) {
                       <p className="text-sm text-zinc-400 flex-1">
                         Guardado:{" "}
                         <span className="font-semibold text-white">
-                          {formatBRL(g.current_amount ?? 0)}
+                          {formatBRL(g.currentAmount ?? 0)}
                         </span>
                       </p>
                       <button

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { TrendingUp, TrendingDown, LogIn, ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
+import { signInWithPopup } from "firebase/auth"
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
 import Card from "../components/Card"
 import ExpenseChart from "../components/ExpenseChart"
 import CategoryChart from "../components/CategoryChart"
-import { supabase } from "../supabase"
+import { auth, db, googleProvider } from "../firebase"
 
 export default function Dashboard({ user }) {
   const [transactions, setTransactions] = useState([])
@@ -14,13 +16,17 @@ export default function Dashboard({ user }) {
   }, [user])
 
   async function fetchTransactions() {
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-    if (data) setTransactions(data)
-    if (error) console.log(error)
+    try {
+      const q = query(
+        collection(db, "transactions"),
+        where("userId", "==", user.id),
+        orderBy("createdAt", "desc")
+      )
+      const snapshot = await getDocs(q)
+      setTransactions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   function formatBRL(value) {
@@ -54,7 +60,7 @@ export default function Dashboard({ user }) {
   })()
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({ provider: "google" })
+    await signInWithPopup(auth, googleProvider)
   }
 
   if (!user) {
