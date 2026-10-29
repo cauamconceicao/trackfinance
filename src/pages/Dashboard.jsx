@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { TrendingUp, TrendingDown, ArrowRight } from "lucide-react"
+import { TrendingUp, TrendingDown, ArrowRight, Clock } from "lucide-react"
 import { Link } from "react-router-dom"
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
 import Card from "../components/Card"
@@ -35,19 +35,26 @@ export default function Dashboard({ user }) {
     })
   }
 
-  const income = transactions
+  const realized = transactions.filter((t) => !t.scheduled)
+  const scheduled = transactions
+    .filter((t) => t.scheduled)
+    .sort((a, b) => (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0))
+
+  const income = realized
     .filter((t) => t.amount > 0)
     .reduce((acc, t) => acc + t.amount, 0)
 
-  const expenses = transactions
+  const expenses = realized
     .filter((t) => t.amount < 0)
     .reduce((acc, t) => acc + t.amount, 0)
 
   const balance = income + expenses
 
+  const scheduledTotal = scheduled.reduce((acc, t) => acc + t.amount, 0)
+
   // Categoria com maior gasto
   const topCategory = (() => {
-    const grouped = transactions
+    const grouped = realized
       .filter((t) => t.amount < 0)
       .reduce((acc, t) => {
         const cat = t.category || "Outros"
@@ -64,7 +71,7 @@ export default function Dashboard({ user }) {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">
-          Olá, {user.user_metadata?.full_name?.split(" ")[0] ?? "seja bem-vindo"} 👋
+          Olá, {user.user_metadata?.full_name?.split(" ")[0] ?? "seja bem-vindo"}!
         </h1>
         <p className="text-zinc-500 text-sm mt-1">
           Aqui está um resumo das suas finanças
@@ -93,9 +100,46 @@ export default function Dashboard({ user }) {
 
       {/* Gráficos lado a lado em telas grandes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <ExpenseChart transactions={transactions} />
-        <CategoryChart transactions={transactions} />
+        <ExpenseChart transactions={realized} />
+        <CategoryChart transactions={realized} />
       </div>
+
+      {/* Próximas parcelas (previstas) */}
+      {scheduled.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              <Clock size={15} className="text-amber-400" />
+              Próximas parcelas
+              <span className="text-xs font-normal text-zinc-500">
+                ({scheduled.length})
+              </span>
+            </h2>
+            <p className="text-sm font-semibold text-amber-400">
+              {formatBRL(Math.abs(scheduledTotal))}
+            </p>
+          </div>
+          <p className="text-xs text-zinc-500 mb-4">
+            Parcelas previstas que ainda não entram no saldo acima.
+          </p>
+          <div className="flex flex-col gap-2">
+            {scheduled.slice(0, 5).map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between bg-zinc-800/60 px-4 py-3 rounded-xl"
+              >
+                <div>
+                  <p className="text-sm font-medium text-white">{t.title}</p>
+                  <p className="text-xs text-zinc-500">{t.category}</p>
+                </div>
+                <p className="text-sm font-semibold text-amber-400">
+                  {formatBRL(Math.abs(t.amount))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Últimas transações */}
       <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
@@ -103,7 +147,7 @@ export default function Dashboard({ user }) {
           <h2 className="text-base font-semibold text-white">
             Últimas Transações
             <span className="ml-2 text-xs font-normal text-zinc-500">
-              ({transactions.length})
+              ({realized.length})
             </span>
           </h2>
           <Link
@@ -115,13 +159,13 @@ export default function Dashboard({ user }) {
           </Link>
         </div>
 
-        {transactions.length === 0 ? (
+        {realized.length === 0 ? (
           <p className="text-zinc-500 text-sm text-center py-8">
             Nenhuma transação ainda. Vá em Transações para adicionar!
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {transactions.slice(0, 5).map((transaction) => (
+            {realized.slice(0, 5).map((transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between bg-zinc-800/60 hover:bg-zinc-800 px-4 py-3 rounded-xl transition"

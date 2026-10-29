@@ -38,7 +38,7 @@ export default function Sidebar({ user, onLogout }) {
   return (
     <>
       {/* Sidebar desktop */}
-      <div className="hidden md:flex w-60 min-h-screen bg-zinc-950 border-r border-zinc-800/60 p-4 flex-col shrink-0">
+      <div className="hidden md:flex w-60 h-screen sticky top-0 bg-zinc-950 border-r border-zinc-800/60 p-4 flex-col shrink-0">
 
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-2 mb-8">

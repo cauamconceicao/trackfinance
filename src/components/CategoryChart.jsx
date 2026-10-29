@@ -45,11 +45,11 @@ export default function CategoryChart({ transactions }) {
   if (data.length === 0) return null
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl">
+    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-full flex flex-col">
       <h2 className="text-base font-semibold text-white mb-6">
         Gastos por Categoria
       </h2>
-      <div className="w-full h-56">
+      <div className="w-full flex-1 min-h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" barSize={20}>
             <XAxis

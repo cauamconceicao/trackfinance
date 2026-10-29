@@ -37,7 +37,7 @@ export default function ExpenseChart({ transactions }) {
   ]
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 mt-6 p-6 rounded-2xl">
+    <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold text-white">Visão Geral</h2>
         <div className="flex items-center gap-4">
@@ -52,7 +52,7 @@ export default function ExpenseChart({ transactions }) {
         </div>
       </div>
 
-      <div className="w-full h-56">
+      <div className="w-full flex-1 min-h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barSize={52}>
             <XAxis
