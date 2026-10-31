@@ -3,18 +3,68 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Logado e com e-mail confirmado (contas Google já vêm confirmadas)
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    // Lê/altera/apaga só o que já é seu
+    function ownsExisting() {
+      return signedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    // Cria só em seu nome
+    function createsOwn() {
+      return signedIn() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Ao editar, não pode passar o documento para outra pessoa
+    function keepsOwner() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    function validTransaction() {
+      let d = request.resource.data;
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 200
+        && d.amount is number
+        && d.createdAt is timestamp;
+    }
+
+    function validGoal() {
+      let d = request.resource.data;
+      return d.title is string && d.title.size() > 0 && d.title.size() <= 100
+        && d.targetAmount is number && d.targetAmount >= 0
+        && d.currentAmount is number && d.currentAmount >= 0;
+    }
+
     match /transactions/{transactionId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+      allow read, delete: if ownsExisting();
+      allow update: if ownsExisting() && keepsOwner() && validTransaction();
+      allow create: if createsOwn() && validTransaction();
     }
 
     match /goals/{goalId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+      allow read, delete: if ownsExisting();
+      allow update: if ownsExisting() && keepsOwner() && validGoal();
+      allow create: if createsOwn() && validGoal();
+    }
+
+    match /recurring/{ruleId} {
+      allow read, delete: if ownsExisting();
+      allow update: if ownsExisting() && keepsOwner();
+      allow create: if createsOwn();
+    }
+
+    // Preferências: um documento por pessoa, com o id igual ao uid
+    match /userSettings/{userId} {
+      allow read, delete: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn() && request.auth.uid == userId
+        && request.resource.data.userId == userId;
+    }
+
+    // Qualquer outra coleção fica fechada
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

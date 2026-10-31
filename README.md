@@ -8,12 +8,17 @@ Aplicação de controle financeiro pessoal com autenticação, dashboard interat
 
 ## ✨ Funcionalidades
 
-- **Autenticação** com Google via Firebase Auth
-- **Dashboard** com saldo, receitas, despesas e gráficos
-- **Transações** — adicionar, editar, excluir e filtrar por categoria ou tipo
-- **Metas financeiras** — valor alvo, barra de progresso e atualização do valor guardado
-- **Métricas** — gráfico de gastos por categoria e destaque do maior gasto
-- **Responsivo** — sidebar no desktop, bottom navbar no mobile
+- **Página de apresentação** com login pelo Google ou por e-mail e senha
+- **Início** com o mês selecionado: saldo, receitas, despesas, mini gráfico dos últimos 6 meses, comparação com o mês anterior, gastos por categoria e meta principal
+- **Transações** — adicionar, editar, excluir (com “Desfazer”), parceladas e **recorrentes** lançadas automaticamente todo mês
+- **Busca e filtros combinados** — texto, entradas/saídas, categoria e período
+- **Categorias personalizadas** — criar, renomear, escolher ícone e cor
+- **Metas** — valor alvo, prazo, quanto guardar por mês, guardar/retirar dinheiro, editar e excluir
+- **Importar extrato ou planilha** (.ofx do banco, .csv, .xlsx, .xls) com categorias sugeridas, modelo para baixar, prévia, detecção de duplicadas e relatório de linhas com erro
+- **Exportar dados** em CSV ou Excel
+- **LGPD** — política de privacidade, termos de uso e exclusão da conta com todos os dados
+- **PWA** — instalável no celular e funciona sem internet (sincroniza depois)
+- **Responsivo** — menu inferior flutuante no celular e barra lateral no computador
 
 ---
 

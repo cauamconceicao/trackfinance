@@ -1,269 +1,139 @@
-import { useState, useEffect } from "react"
-import { Plus, Trash2, Target, Pencil, Check, X } from "lucide-react"
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  updateDoc,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore"
-import { db } from "../firebase"
+import { Plus, Target, TriangleAlert } from "lucide-react"
+import { useData } from "../context/DataContext"
+import { useUI } from "../context/UIContext"
+import { Block, Button, IconButton, Money, PageHeader, SkeletonBlock } from "../components/ui"
+import { ICONS } from "../lib/categories"
+import { GOAL_IDEAS, goalProgress, isOverdue, monthlyNeeded } from "../lib/goals"
+import { formatBRL, formatCompactBRL, parsePeriodKey, shortPeriod } from "../lib/format"
 
-export default function Goals({ user }) {
-  const [goals, setGoals] = useState([])
-  const [title, setTitle] = useState("")
-  const [targetAmount, setTargetAmount] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [editingValue, setEditingValue] = useState("")
-
-  useEffect(() => {
-    if (user) fetchGoals()
-  }, [user])
-
-  async function fetchGoals() {
-    try {
-      const q = query(
-        collection(db, "goals"),
-        where("userId", "==", user.id),
-        orderBy("createdAt", "desc")
-      )
-      const snapshot = await getDocs(q)
-      setGoals(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  async function addGoal() {
-    if (!title.trim()) return
-    setLoading(true)
-    try {
-      await addDoc(collection(db, "goals"), {
-        title,
-        targetAmount: Number(targetAmount) || 0,
-        currentAmount: 0,
-        userId: user.id,
-        createdAt: serverTimestamp(),
-      })
-      await fetchGoals()
-      setTitle("")
-      setTargetAmount("")
-    } catch (error) {
-      console.log(error)
-    }
-    setLoading(false)
-  }
-
-  async function removeGoal(id) {
-    try {
-      await deleteDoc(doc(db, "goals", id))
-      fetchGoals()
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  async function saveCurrentAmount(id) {
-    try {
-      await updateDoc(doc(db, "goals", id), {
-        currentAmount: Number(editingValue),
-      })
-      fetchGoals()
-      setEditingId(null)
-      setEditingValue("")
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  function startEditing(goal) {
-    setEditingId(goal.id)
-    setEditingValue(String(goal.currentAmount ?? 0))
-  }
-
-  function cancelEditing() {
-    setEditingId(null)
-    setEditingValue("")
-  }
-
-  function handleKeyDown(e) {
-    if (e.key === "Enter") addGoal()
-  }
-
-  function formatBRL(value) {
-    return Number(value).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })
-  }
-
-  function getProgress(current, target) {
-    if (!target || target === 0) return 0
-    return Math.min(100, Math.round((current / target) * 100))
-  }
-
-  if (!user) return <p className="p-8 text-zinc-400">Carregando...</p>
+function GoalCard({ goal, onOpen }) {
+  const Icon = ICONS[goal.icon] ?? Target
+  const progress = goalProgress(goal)
+  const monthly = monthlyNeeded(goal)
+  const end = parsePeriodKey(goal.deadline)
+  const done = progress >= 100
+  const late = !done && isOverdue(goal.deadline)
 
   return (
-    <div className="p-6 md:p-8 max-w-2xl mx-auto">
-
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Metas Financeiras</h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          {goals.length} {goals.length === 1 ? "meta" : "metas"} cadastradas
-        </p>
-      </div>
-
-      {/* Formulário */}
-      <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl mb-6">
-        <p className="text-sm font-medium text-zinc-300 mb-3">Nova Meta</p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <input
-            type="text"
-            placeholder="Ex: Reserva de emergência, Viagem..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-600 transition"
-          />
-          <input
-            type="number"
-            placeholder="Valor alvo (R$)"
-            value={targetAmount}
-            onChange={(e) => setTargetAmount(e.target.value)}
-            className="w-full sm:w-44 bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-green-600 transition"
-          />
-        </div>
-        <button
-          onClick={addGoal}
-          disabled={loading || !title.trim()}
-          className="mt-3 flex items-center gap-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-xl transition"
-        >
-          <Plus size={16} />
-          Adicionar
-        </button>
-      </div>
-
-      {/* Lista */}
-      {goals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center mb-4">
-            <Target size={22} className="text-zinc-500" />
+    <button type="button" onClick={onOpen} className="text-left w-full">
+      <Block className="hover:ring-2 hover:ring-ink/10 transition h-full">
+        <div className="flex items-center gap-3">
+          <span className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${done ? "bg-lime" : "bg-soft"}`}>
+            <Icon size={19} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold truncate">{goal.title}</p>
+            <p className={`text-[12.5px] ${late ? "text-danger font-semibold" : "text-muted"}`}>
+              {done ? "Meta alcançada!" : end ? `${late ? "Prazo passou:" : "até"} ${shortPeriod(end)}` : "Sem prazo"}
+            </p>
           </div>
-          <p className="text-zinc-400 text-sm font-medium">Nenhuma meta ainda</p>
-          <p className="text-zinc-600 text-xs mt-1">Adicione sua primeira meta acima</p>
+          <span className="font-display text-[26px] font-bold">{progress}%</span>
         </div>
+        <div className="h-2 bg-soft rounded-full mt-4 overflow-hidden">
+          <div className={`h-full rounded-full ${done ? "bg-income" : "bg-ink"}`} style={{ width: `${progress}%` }} />
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-3">
+          <p className="text-[13px] text-muted tabular">
+            {formatCompactBRL(goal.currentAmount ?? 0)} de {formatCompactBRL(goal.targetAmount)}
+          </p>
+          {monthly && !late && (
+            <span className="bg-ink text-lime text-[12px] font-bold px-2.5 py-1 rounded-full tabular whitespace-nowrap">
+              {formatCompactBRL(monthly)}/mês
+            </span>
+          )}
+        </div>
+      </Block>
+    </button>
+  )
+}
+
+export default function Goals() {
+  const { loading, error, retry, goals } = useData()
+  const { openSheet } = useUI()
+
+  const totalSaved = goals.reduce((a, g) => a + (g.currentAmount ?? 0), 0)
+  const totalTarget = goals.reduce((a, g) => a + (g.targetAmount ?? 0), 0)
+  const overall = totalTarget ? Math.min(100, Math.round((totalSaved / totalTarget) * 100)) : 0
+  const active = goals.filter((g) => goalProgress(g) < 100).length
+
+  return (
+    <div className="p-5 md:p-8 max-w-4xl mx-auto">
+      <PageHeader
+        title="Metas"
+        subtitle={loading ? "Carregando…" : goals.length === 0 ? "Nenhuma meta ainda" : `${active} em andamento`}
+        actions={
+          <IconButton label="Nova meta" variant="dark" onClick={() => openSheet("goal")}>
+            <Plus size={20} />
+          </IconButton>
+        }
+      />
+
+      {error ? (
+        <Block className="text-center py-10">
+          <TriangleAlert size={26} className="mx-auto text-danger" />
+          <p className="font-semibold mt-3">Não conseguimos carregar suas metas</p>
+          <p className="text-sm text-muted mt-1 mb-4">Confira sua internet e tente de novo.</p>
+          <Button onClick={retry}>Tentar de novo</Button>
+        </Block>
+      ) : loading ? (
+        <div className="flex flex-col gap-3" aria-busy="true">
+          <SkeletonBlock className="h-[140px]" />
+          <SkeletonBlock className="h-[130px]" />
+          <SkeletonBlock className="h-[130px]" />
+        </div>
+      ) : goals.length === 0 ? (
+        <>
+          <Block tone="dark" className="p-6">
+            <span className="w-10 h-10 rounded-full bg-lime text-ink flex items-center justify-center">
+              <Target size={19} />
+            </span>
+            <p className="font-display text-[22px] font-bold mt-4">Crie sua primeira meta</p>
+            <p className="text-sm text-white/65 mt-1.5 max-w-md">
+              Defina um valor e um prazo, e o app mostra quanto guardar por mês para chegar lá.
+            </p>
+            <Button variant="lime" className="w-full sm:w-auto mt-5" onClick={() => openSheet("goal")}>
+              <Plus size={18} /> Criar meta
+            </Button>
+          </Block>
+          <p className="text-[13px] font-semibold text-muted mt-6 mb-2 px-1">Ideias para começar</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {GOAL_IDEAS.map((idea, i) => {
+              const Icon = ICONS[idea.icon]
+              return (
+                <button key={idea.title} type="button" onClick={() => openSheet("goal", { preset: idea })} className="text-left">
+                  <Block className="min-h-[110px] flex flex-col justify-between hover:ring-2 hover:ring-ink/10 transition">
+                    <span className={`w-9 h-9 rounded-full flex items-center justify-center ${i === 0 ? "bg-lime" : "bg-soft"}`}>
+                      <Icon size={17} />
+                    </span>
+                    <span className="font-semibold text-[14.5px] mt-4">{idea.title}</span>
+                  </Block>
+                </button>
+              )
+            })}
+          </div>
+        </>
       ) : (
-        <div className="flex flex-col gap-3">
-          {goals.map((g) => {
-            const progress = getProgress(g.currentAmount, g.targetAmount)
-            const isComplete = progress >= 100
-            const isEditing = editingId === g.id
-
-            return (
-              <div
-                key={g.id}
-                className={`bg-zinc-900 border rounded-2xl p-5 transition group
-                  ${isComplete ? "border-green-900/60" : "border-zinc-800 hover:border-zinc-700"}`}
-              >
-                {/* Topo */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0
-                      ${isComplete ? "bg-green-500" : "bg-green-950 border border-green-900/50"}`}>
-                      <Target size={15} className={isComplete ? "text-white" : "text-green-400"} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{g.title}</p>
-                      {g.targetAmount > 0 && (
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          Meta: {formatBRL(g.targetAmount)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => removeGoal(g.id)}
-                    className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-950/60 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-
-                {/* Barra de progresso */}
-                {g.targetAmount > 0 && (
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs text-zinc-500">Progresso</span>
-                      <span className={`text-xs font-semibold ${isComplete ? "text-green-400" : "text-zinc-400"}`}>
-                        {progress}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500
-                          ${isComplete ? "bg-green-400" : "bg-green-600"}`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Valor atual */}
-                <div className="flex items-center gap-2">
-                  {isEditing ? (
-                    <>
-                      <input
-                        type="number"
-                        value={editingValue}
-                        onChange={(e) => setEditingValue(e.target.value)}
-                        autoFocus
-                        className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm px-3 py-1.5 rounded-lg focus:outline-none focus:border-green-600 transition"
-                        placeholder="Valor atual"
-                      />
-                      <button
-                        onClick={() => saveCurrentAmount(g.id)}
-                        className="w-7 h-7 rounded-lg bg-green-600 hover:bg-green-500 flex items-center justify-center transition"
-                      >
-                        <Check size={13} className="text-white" />
-                      </button>
-                      <button
-                        onClick={cancelEditing}
-                        className="w-7 h-7 rounded-lg bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center transition"
-                      >
-                        <X size={13} className="text-zinc-400" />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm text-zinc-400 flex-1">
-                        Guardado:{" "}
-                        <span className="font-semibold text-white">
-                          {formatBRL(g.currentAmount ?? 0)}
-                        </span>
-                      </p>
-                      <button
-                        onClick={() => startEditing(g)}
-                        className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-green-400 transition px-2 py-1 rounded-lg hover:bg-green-950/40"
-                      >
-                        <Pencil size={12} />
-                        Atualizar
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <>
+          <Block tone="dark" className="mb-3 p-6">
+            <div className="flex items-start justify-between">
+              <p className="text-[13px] text-white/60">Total guardado</p>
+              <span className="bg-lime text-ink text-xs font-bold px-2.5 py-1 rounded-full">{overall}%</span>
+            </div>
+            <Money value={totalSaved} className="font-display text-[36px] font-bold block mt-1 leading-tight" />
+            <div className="h-2 bg-white/15 rounded-full mt-4 overflow-hidden">
+              <div className="h-full bg-lime rounded-full" style={{ width: `${overall}%` }} />
+            </div>
+            <p className="text-[12.5px] text-white/60 mt-2">
+              de {formatBRL(totalTarget)} {goals.length === 1 ? "na meta" : `nas ${goals.length} metas`}
+            </p>
+          </Block>
+          <div className="grid md:grid-cols-2 gap-3">
+            {goals.map((g) => (
+              <GoalCard key={g.id} goal={g} onOpen={() => openSheet("goal", { goal: g })} />
+            ))}
+          </div>
+          <p className="text-[12.5px] text-muted text-center mt-4">Toque numa meta para guardar dinheiro, editar ou excluir.</p>
+        </>
       )}
     </div>
   )

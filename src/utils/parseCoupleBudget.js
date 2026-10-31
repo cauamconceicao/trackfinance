@@ -58,7 +58,8 @@ const CATEGORY_KEYWORDS = [
     "curso", "livro", "ingles", "aula", "teoria musical",
   ]],
   ["Lazer", [
-    "spotify", "teatro", "sesc", "clube", "ingresso", "show", "balada", "cinema", "bar ", " bar",
+    "spotify", "netflix", "disney", "prime video", "hbo", "youtube premium", "deezer", "teatro", "sesc", "clube",
+    "ingresso", "show", "balada", "cinema", "bar ",
     "boteco", "botequim", "chopp", "breja", "churrasquinho", "churras", "espeto", "espetinho",
     "pirata", "samba", "flutuante", "fotos",
   ]],
@@ -73,10 +74,12 @@ const CATEGORY_KEYWORDS = [
   ]],
 ]
 
-function classifyCategory(title) {
-  const norm = ` ${normalizeKey(title)} `
+export function classifyCategory(title) {
+  // Pontuação vira espaço e a palavra-chave precisa estar no começo de uma palavra
+  // (evita "gas" casar com "drogasil")
+  const norm = ` ${normalizeKey(title).replace(/[^a-z0-9]+/g, " ")} `
   for (const [category, keywords] of CATEGORY_KEYWORDS) {
-    if (keywords.some((kw) => norm.includes(kw))) return category
+    if (keywords.some((kw) => norm.includes(` ${kw.trimStart()}`))) return category
   }
   return "Outros"
 }

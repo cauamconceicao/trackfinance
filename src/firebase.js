@@ -1,6 +1,11 @@
 import { initializeApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
-import { getFirestore } from "firebase/firestore"
+import {
+  initializeFirestore,
+  getFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,5 +24,19 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// E-mails de confirmação e de nova senha em português
+auth.languageCode = "pt-BR"
+
+// Cache local: o app continua abrindo e salvando sem internet e sincroniza depois
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  } catch {
+    return getFirestore(app)
+  }
+}
+
+export const db = createDb()
 export const googleProvider = new GoogleAuthProvider()

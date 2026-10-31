@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-paper: #efeee9;
+  --color-card: #ffffff;
+  --color-ink: #121212;
+  --color-lime: #d3f26a;
+  --color-lime-strong: #c4e84f;
+  --color-muted: #66665f;
+  --color-soft: #f4f3ef;
+  --color-line: #e4e3dd;
+  --color-income: #3f6212;
+  --color-chart-blue: #2f6fed;
+  --color-chart-orange: #f2994a;
+  --color-chart-purple: #9b6bd6;
+  --color-danger: #d92d20;
+  --color-danger-soft: #fdecea;
+
+  --radius-bento: 26px;
+
+  --animate-sheet-up: sheet-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-pop-in: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* "Inter Display": o eixo óptico do Inter em tamanho grande */
+.font-display {
+  font-variation-settings: "opsz" 32;
+  letter-spacing: -0.03em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
